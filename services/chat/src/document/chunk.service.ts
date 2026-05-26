@@ -1,8 +1,8 @@
-// services/api/src/document/chunk.service.ts
 import { Injectable } from '@nestjs/common';
 import { RecursiveCharacterTextSplitter } from '@langchain/textsplitters';
 import { PrismaService } from '../prisma/prisma.service';
 import { parseFile } from './parsers/parser.factory';
+import { EmbeddingService } from '../embedding/embedding.service';
 
 @Injectable()
 export class ChunkService {
@@ -11,7 +11,10 @@ export class ChunkService {
     chunkOverlap: 50,
   });
 
-  constructor(private prisma: PrismaService) {}
+  constructor(
+    private prisma: PrismaService,
+    private embeddingService: EmbeddingService,
+  ) {}
 
   async chunkDocument(documentId: string) {
     const doc = await this.prisma.document.findUniqueOrThrow({
@@ -41,7 +44,10 @@ export class ChunkService {
         })),
       });
 
-      // 4. 更新文档状态
+      // 4. 向量化
+      await this.embeddingService.embedChunks(documentId);
+
+      // 5. 更新文档状态
       await this.prisma.document.update({
         where: { id: documentId },
         data: {
