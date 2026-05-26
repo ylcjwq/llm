@@ -3,6 +3,7 @@ import { RecursiveCharacterTextSplitter } from '@langchain/textsplitters';
 import { PrismaService } from '../prisma/prisma.service';
 import { parseFile } from './parsers/parser.factory';
 import { EmbeddingService } from '../embedding/embedding.service';
+import { SseService } from '../sse/sse.service';
 
 @Injectable()
 export class ChunkService {
@@ -14,6 +15,7 @@ export class ChunkService {
   constructor(
     private prisma: PrismaService,
     private embeddingService: EmbeddingService,
+    private sseService: SseService,
   ) {}
 
   async chunkDocument(documentId: string) {
@@ -25,6 +27,14 @@ export class ChunkService {
     await this.prisma.document.update({
       where: { id: documentId },
       data: { status: 'processing' },
+    });
+
+    // 推送开始处理事件
+    this.sseService.emit(doc.userId, {
+      taskType: 'document_vectorize',
+      taskId: documentId,
+      status: 'processing',
+      message: '开始处理文档',
     });
 
     try {
@@ -56,12 +66,30 @@ export class ChunkService {
         },
       });
 
+      // 推送完成事件
+      this.sseService.emit(doc.userId, {
+        taskType: 'document_vectorize',
+        taskId: documentId,
+        status: 'done',
+        message: '文档处理完成',
+        metadata: { chunkCount: chunks.length },
+      });
+
       return { chunkCount: chunks.length };
     } catch (error) {
       await this.prisma.document.update({
         where: { id: documentId },
         data: { status: 'failed' },
       });
+
+      // 推送失败事件
+      this.sseService.emit(doc.userId, {
+        taskType: 'document_vectorize',
+        taskId: documentId,
+        status: 'error',
+        message: error instanceof Error ? error.message : '文档处理失败',
+      });
+
       throw error;
     }
   }

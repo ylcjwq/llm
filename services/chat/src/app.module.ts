@@ -8,9 +8,10 @@ import { ConversationModule } from './conversation/conversation.module';
 import { AuthModule } from './auth/auth.module';
 import { DocumentModule } from './document/document.module';
 import { EmbeddingModule } from './embedding/embedding.module';
+import { SseModule } from './sse/sse.module';
 
 @Module({
-  imports: [PrismaModule, AuthModule, LlmModule, AdvancedModule, ConversationModule, DocumentModule, EmbeddingModule],
+  imports: [SseModule, PrismaModule, AuthModule, LlmModule, AdvancedModule, ConversationModule, DocumentModule, EmbeddingModule],
   controllers: [AppController],
   providers: [AppService],
 })
