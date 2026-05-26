@@ -13,11 +13,15 @@ import {
 import { FileInterceptor } from '@nestjs/platform-express';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
 import { DocumentService } from './document.service';
+import { ChunkService } from './chunk.service';
 
 @Controller('api/documents')
 @UseGuards(JwtAuthGuard)
 export class DocumentController {
-  constructor(private documentService: DocumentService) {}
+  constructor(
+    private documentService: DocumentService,
+    private chunkService: ChunkService,
+  ) {}
 
   @Post('upload')
   @UseInterceptors(FileInterceptor('file'))
@@ -41,5 +45,10 @@ export class DocumentController {
   @Delete(':id')
   async remove(@Request() req, @Param('id') id: string) {
     return this.documentService.delete(id, req.user.userId);
+  }
+
+  @Post(':id/process')
+  async process(@Param('id') id: string) {
+    return this.chunkService.chunkDocument(id);
   }
 }
