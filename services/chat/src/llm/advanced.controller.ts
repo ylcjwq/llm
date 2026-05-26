@@ -1,14 +1,23 @@
-import { Controller, Post, Body } from '@nestjs/common';
+import { Controller, Post, Body, UseGuards, Request } from '@nestjs/common';
+import { JwtAuthGuard } from '../auth/jwt-auth.guard';
 import { AdvancedAnalysisService } from './advanced-analysis.service';
 
 @Controller('api/advanced')
+@UseGuards(JwtAuthGuard)
 export class AdvancedController {
   constructor(
     private readonly advancedAnalysisService: AdvancedAnalysisService,
   ) {}
 
   @Post('analyze')
-  async analyze(@Body() body: { sessionId: string; input: string }) {
-    return this.advancedAnalysisService.analyze(body.sessionId, body.input);
+  async analyze(
+    @Body() body: { conversationId: string; input: string },
+    @Request() req,
+  ) {
+    return this.advancedAnalysisService.analyze(
+      req.user.userId,
+      body.conversationId,
+      body.input,
+    );
   }
 }

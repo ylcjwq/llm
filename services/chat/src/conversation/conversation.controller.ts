@@ -11,32 +11,15 @@ import {
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
 import { ConversationService } from './conversation.service';
 import { MessageService } from './message.service';
-import { PrismaService } from '../prisma/prisma.service';
-import { DatabaseChatMessageHistory } from './db-chat-history';
-import {
-  Runnable,
-  RunnableWithMessageHistory,
-} from '@langchain/core/runnables';
-import { ChatPromptTemplate } from '@langchain/core/prompts';
-import { createChatModel } from '../llm/model.factory';
+import { AdvancedAnalysisService } from '../llm/advanced-analysis.service';
 
 @Controller('api/conversations')
 export class ConversationController {
   constructor(
     private conversationService: ConversationService,
     private messageService: MessageService,
-    private prisma: PrismaService,
+    private advancedAnalysisService: AdvancedAnalysisService,
   ) {}
-
-  private createWithHistory(chain: Runnable) {
-    return new RunnableWithMessageHistory({
-      runnable: chain,
-      getMessageHistory: (sessionId: string) =>
-        new DatabaseChatMessageHistory(this.prisma, sessionId),
-      inputMessagesKey: 'input',
-      historyMessagesKey: 'history',
-    });
-  }
 
   @UseGuards(JwtAuthGuard)
   @Post()
@@ -63,41 +46,21 @@ export class ConversationController {
     await this.conversationService.findById(id, req.user.userId);
 
     const userMessage = body.input;
-
-    console.log('[chat] Starting chat for conversation:', id);
-    console.log('[chat] User input:', userMessage);
-
     if (!userMessage) {
       throw new Error('User input is required');
     }
 
-    const model = createChatModel();
-    const prompt = ChatPromptTemplate.fromMessages([
-      ['system', 'You are a helpful assistant.'],
-      ['placeholder', '{history}'],
-      ['human', '{input}'],
-    ]);
+    const result = await this.advancedAnalysisService.analyze(
+      req.user.userId,
+      id,
+      userMessage,
+    );
 
-    const chain = prompt.pipe(model);
-    const withHistory = this.createWithHistory(chain);
-
-    console.log('[chat] Invoking chain with history...');
-
-    try {
-      const response = await withHistory.invoke(
-        { input: userMessage },
-        { configurable: { sessionId: id } },
-      );
-
-      console.log('[chat] Response received:', response);
-      console.log('[chat] Response content:', response.content);
-      console.log('[chat] Response content type:', typeof response.content);
-
-      return { response: response.content };
-    } catch (error) {
-      console.error('[chat] Error during invoke:', error);
-      throw error;
-    }
+    return {
+      response: result.report,
+      usedAgents: result.usedAgents,
+      retrievedDocuments: result.retrievedDocuments,
+    };
   }
 
   @UseGuards(JwtAuthGuard)
