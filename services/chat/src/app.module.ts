@@ -9,9 +9,20 @@ import { AuthModule } from './auth/auth.module';
 import { DocumentModule } from './document/document.module';
 import { EmbeddingModule } from './embedding/embedding.module';
 import { SseModule } from './sse/sse.module';
+import { UIProtocolModule } from './llm/ui-protocol/ui-protocol.module';
 
 @Module({
-  imports: [SseModule, PrismaModule, AuthModule, LlmModule, AdvancedModule, ConversationModule, DocumentModule, EmbeddingModule],
+  imports: [
+    SseModule,
+    PrismaModule,
+    AuthModule,
+    LlmModule,
+    AdvancedModule,
+    ConversationModule,
+    DocumentModule,
+    EmbeddingModule,
+    UIProtocolModule,
+  ],
   controllers: [AppController],
   providers: [AppService],
 })
