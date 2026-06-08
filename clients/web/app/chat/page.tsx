@@ -6,6 +6,9 @@ import { Card } from "@/components/ui/card";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Badge } from "@/components/ui/badge";
 import { PlusIcon, FileTextIcon, TrashIcon, LogOutIcon, PaperclipIcon, SendIcon, XIcon } from "lucide-react";
+import { ComponentRenderer } from "@/components/ai-ui";
+import { sendChatMessage } from "@/api";
+import type { AIUIResponse, UIAction } from "@/components/ai-ui/types";
 
 export default function ChatPage() {
   const router = useRouter();
@@ -84,17 +87,34 @@ export default function ChatPage() {
     }
 
     if (input.trim()) {
-      const res = await fetch(`/api/conversations/${currentConvId}/chat`, {
-        method: "POST",
-        headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" },
-        body: JSON.stringify({ input }),
+      const response = await sendChatMessage({
+        sessionId: currentConvId,
+        input: input.trim(),
       });
-      if (res.ok) {
-        setInput("");
-        loadMessages(currentConvId);
-      }
+      setInput("");
+      loadMessages(currentConvId);
     }
     setLoading(false);
+  }
+
+  async function handleCancelFlow() {
+    if (!currentConvId) return;
+    // 清空当前对话的消息，重新开始
+    setMessages([]);
+    // 或者可以发送一个特殊消息来重置流程
+  }
+
+  async function handleUIAction(action: UIAction) {
+    if (!currentConvId) return;
+    setLoading(true);
+    try {
+      await sendChatMessage({ sessionId: currentConvId, action });
+      loadMessages(currentConvId);
+    } catch (error) {
+      console.error('操作失败:', error);
+    } finally {
+      setLoading(false);
+    }
   }
 
   function handleInputChange(e: React.ChangeEvent<HTMLTextAreaElement>) {
@@ -244,17 +264,78 @@ export default function ChatPage() {
       {/* Main Chat Area */}
       <main className="flex-1 flex flex-col overflow-hidden">
         <div className="flex-1 overflow-y-auto p-4">
-          {messages.map((msg: any, i) => (
-            <div key={i} className={`mb-4 flex ${msg.role === "user" ? "justify-end" : "justify-start"}`}>
-              <Card
-                className={`p-3 max-w-[80%] ${
-                  msg.role === "user" ? "bg-primary text-primary-foreground" : "bg-muted"
-                }`}
-              >
-                <p className="text-sm whitespace-pre-wrap">{msg.content}</p>
-              </Card>
-            </div>
-          ))}
+          {messages.map((msg: any, i) => {
+            // 解析 AI 消息内容
+            let aiContent = msg.content;
+            if (msg.role === 'ai' && typeof msg.content === 'string') {
+              try {
+                aiContent = JSON.parse(msg.content);
+              } catch {
+                // 保持字符串格式
+              }
+            }
+
+            // 过滤掉 UIAction 消息（用户的操作记录）
+            if (msg.role === 'user' || msg.role === 'human') {
+              try {
+                const parsed = typeof msg.content === 'string' ? JSON.parse(msg.content) : msg.content;
+                if (parsed?.componentType) {
+                  return null; // 不显示操作记录
+                }
+              } catch {
+                // 不是JSON，继续显示
+              }
+            }
+
+            // 检查是否是最后一条 AI 消息
+            const isLastAIMessage = msg.role === 'ai' && i === messages.length - 1;
+
+            return (
+              <div key={i} className={`mb-4 flex ${msg.role === "user" || msg.role === "human" ? "justify-end" : "justify-start"}`}>
+                {msg.role === "user" || msg.role === "human" ? (
+                  <Card className="p-3 max-w-[80%] bg-primary text-primary-foreground">
+                    <p className="text-sm whitespace-pre-wrap">{msg.content}</p>
+                  </Card>
+                ) : (
+                  <div className="max-w-[80%] space-y-3">
+                    {typeof aiContent === 'string' ? (
+                      <Card className="p-3 bg-muted">
+                        <p className="text-sm whitespace-pre-wrap">{aiContent}</p>
+                      </Card>
+                    ) : aiContent?.components ? (
+                      isLastAIMessage ? (
+                        // 最后一条消息：显示完整交互组件 + 取消按钮
+                        <>
+                          {aiContent.components.map((component: any, j: number) => (
+                            <div key={j}>
+                              <ComponentRenderer component={component} onAction={handleUIAction} />
+                            </div>
+                          ))}
+                          <div className="mt-3">
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              onClick={handleCancelFlow}
+                              className="text-gray-600"
+                            >
+                              取消
+                            </Button>
+                          </div>
+                        </>
+                      ) : (
+                        // 历史消息：显示摘要（只读）
+                        <Card className="p-3 bg-muted opacity-70">
+                          <p className="text-sm text-gray-600">
+                            {aiContent.components.find((c: any) => c.type === 'text')?.content || '[已完成的步骤]'}
+                          </p>
+                        </Card>
+                      )
+                    ) : null}
+                  </div>
+                )}
+              </div>
+            );
+          })}
         </div>
 
         <div className="p-4 border-t border-border bg-card shrink-0">

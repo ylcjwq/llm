@@ -227,7 +227,7 @@ export class UIFlowService {
     };
   }
 
-  /** Stage 3 → Stage 4: 确认后显示分析结果 */
+  /** Stage 3 → Stage 4: 确认后显示提交成功 */
   private handleConfirm(
     sessionId: string,
     action: UIAction,
@@ -250,43 +250,25 @@ export class UIFlowService {
       });
     }
 
-    context.stage = 'result';
-    this.sessions.set(sessionId, context);
+    // 清除会话状态
+    this.sessions.delete(sessionId);
 
     return {
       components: [
         {
           type: 'text',
-          content: '需求已提交，正在进行分析...',
+          content: '✅ 需求已提交成功！',
         },
         {
-          type: 'steps',
-          current: 1,
-          steps: [
-            { title: '需求提交', status: 'completed' },
-            { title: '需求解析', status: 'active' },
-            { title: '可行性分析', status: 'pending' },
-            { title: '生成方案', status: 'pending' },
-          ],
-        },
-        {
-          type: 'action_buttons',
-          buttons: [
-            { id: 'view_detail', label: '查看详情', variant: 'primary' },
-            {
-              id: 'new_requirement',
-              label: '提交新需求',
-              variant: 'secondary',
-            },
-            { id: 'back_home', label: '返回首页', variant: 'secondary' },
+          type: 'card',
+          title: '提交信息',
+          fields: [
+            { label: '状态', value: '已提交' },
+            { label: '提交时间', value: new Date().toLocaleString('zh-CN') },
           ],
         },
       ],
-      context: {
-        sessionStage: 'result',
-        requirementType: context.requirementType,
-        formData: context.formData,
-      },
+      context: { sessionStage: 'completed' },
     };
   }
 
