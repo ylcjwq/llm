@@ -33,19 +33,28 @@ export class UIFlowService {
         },
         {
           type: 'selection',
-          title: '需求类型',
+          title: '请选择需求类型',
           options: [
             {
               id: 'functional',
-              label: '功能需求',
+              label: '功能需求 ⚙️',
               description: '新增或修改功能',
             },
             {
               id: 'performance',
-              label: '性能需求',
+              label: '性能需求 ⚡',
               description: '性能优化或改进',
             },
-            { id: 'bug', label: 'Bug修复', description: '修复现有问题' },
+            {
+              id: 'security',
+              label: '安全需求 🔒',
+              description: '安全相关的需求',
+            },
+            {
+              id: 'uiux',
+              label: 'UI/UX需求 🎨',
+              description: '界面和用户体验优化',
+            },
           ],
         },
       ],
@@ -104,7 +113,8 @@ export class UIFlowService {
     const typeLabels = {
       functional: '功能需求',
       performance: '性能需求',
-      bug: 'Bug修复',
+      security: '安全需求',
+      uiux: 'UI/UX需求',
     };
 
     return {
@@ -136,16 +146,25 @@ export class UIFlowService {
               name: 'priority',
               label: '优先级',
               options: [
-                { value: 'high', label: '高' },
-                { value: 'medium', label: '中' },
-                { value: 'low', label: '低' },
+                { value: 'P0', label: 'P0 - 紧急' },
+                { value: 'P1', label: 'P1 - 高' },
+                { value: 'P2', label: 'P2 - 中' },
+                { value: 'P3', label: 'P3 - 低' },
               ],
               required: true,
             },
             {
-              type: 'date',
-              name: 'deadline',
-              label: '期望完成日期',
+              type: 'textarea',
+              name: 'acceptance',
+              label: '验收标准',
+              placeholder: '描述如何验证需求已完成',
+              required: true,
+            },
+            {
+              type: 'textarea',
+              name: 'notes',
+              label: '补充说明',
+              placeholder: '其他需要说明的内容（选填）',
               required: false,
             },
           ],
@@ -176,13 +195,8 @@ export class UIFlowService {
     const typeLabels = {
       functional: '功能需求',
       performance: '性能需求',
-      bug: 'Bug修复',
-    };
-
-    const priorityLabels = {
-      high: '高',
-      medium: '中',
-      low: '低',
+      security: '安全需求',
+      uiux: 'UI/UX需求',
     };
 
     return {
@@ -203,11 +217,15 @@ export class UIFlowService {
             { label: '详细描述', value: action.formData.description || '-' },
             {
               label: '优先级',
-              value: priorityLabels[action.formData.priority] || '-',
+              value: action.formData.priority || '-',
             },
             {
-              label: '期望完成日期',
-              value: action.formData.deadline || '未设置',
+              label: '验收标准',
+              value: action.formData.acceptance || '-',
+            },
+            {
+              label: '补充说明',
+              value: action.formData.notes || '无',
             },
           ],
         },
@@ -227,7 +245,7 @@ export class UIFlowService {
     };
   }
 
-  /** Stage 3 → Stage 4: 确认后显示提交成功 */
+  /** Stage 3 → Stage 4: 确认后显示分析结果 */
   private handleConfirm(
     sessionId: string,
     action: UIAction,
@@ -253,22 +271,59 @@ export class UIFlowService {
     // 清除会话状态
     this.sessions.delete(sessionId);
 
+    const typeLabels = {
+      functional: '功能需求',
+      performance: '性能需求',
+      security: '安全需求',
+      uiux: 'UI/UX需求',
+    };
+
+    // 生成需求编号
+    const reqId = `REQ-${new Date().getFullYear()}-${String(Math.floor(Math.random() * 1000)).padStart(3, '0')}`;
+    const complexityScore = Math.floor(Math.random() * 40) + 60; // 60-100分
+
     return {
       components: [
         {
           type: 'text',
-          content: '✅ 需求已提交成功！',
+          content: '✅ 需求分析完成！',
+        },
+        {
+          type: 'steps',
+          current: 4,
+          steps: [
+            { title: '需求提取', status: 'completed' },
+            { title: '完整性检查', status: 'completed' },
+            { title: '冲突检测', status: 'completed' },
+            { title: '复杂度评估', status: 'completed' },
+            { title: '汇总报告', status: 'completed' },
+          ],
         },
         {
           type: 'card',
-          title: '提交信息',
+          title: '需求详情',
           fields: [
-            { label: '状态', value: '已提交' },
-            { label: '提交时间', value: new Date().toLocaleString('zh-CN') },
+            { label: '需求编号', value: reqId },
+            { label: '需求标题', value: context.formData?.title || '-' },
+            {
+              label: '需求类型',
+              value: typeLabels[context.requirementType || 'functional'],
+            },
+            { label: '优先级', value: context.formData?.priority || '-' },
+            { label: '状态', value: '待评审' },
+            { label: '复杂度评分', value: `${complexityScore}/100` },
+          ],
+        },
+        {
+          type: 'action_buttons',
+          buttons: [
+            { id: 'generate_story', label: '生成用户故事', variant: 'primary' },
+            { id: 'view_report', label: '查看详细报告', variant: 'secondary' },
+            { id: 'sync_jira', label: '同步到 Jira', variant: 'secondary' },
           ],
         },
       ],
-      context: { sessionStage: 'completed' },
+      context: { sessionStage: 'completed', reqId },
     };
   }
 

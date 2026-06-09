@@ -54,7 +54,20 @@ export default function ChatPage() {
       const data = await res.json();
       setConversations([data, ...conversations]);
       setCurrentConvId(data.id);
-      setMessages([]);
+      // 新建会话时立即显示欢迎消息
+      setMessages([
+        {
+          role: 'ai',
+          content: JSON.stringify({
+            components: [
+              {
+                type: 'text',
+                content: '欢迎使用 Autix AI 需求分析助理，请描述你的需求，或点击下方常用功能。',
+              },
+            ],
+          }),
+        },
+      ]);
     }
   }
 
@@ -279,7 +292,8 @@ export default function ChatPage() {
             if (msg.role === 'user' || msg.role === 'human') {
               try {
                 const parsed = typeof msg.content === 'string' ? JSON.parse(msg.content) : msg.content;
-                if (parsed?.componentType) {
+                // 检查是否是 UIAction 格式：{ type: '...', ... }
+                if (parsed?.type && ['selection', 'form', 'confirmation', 'button'].includes(parsed.type)) {
                   return null; // 不显示操作记录
                 }
               } catch {
@@ -287,8 +301,11 @@ export default function ChatPage() {
               }
             }
 
-            // 检查是否是最后一条 AI 消息
+            // 检查是否是最后一条 AI 消息，并且包含交互式组件
             const isLastAIMessage = msg.role === 'ai' && i === messages.length - 1;
+            const hasInteractiveComponent = aiContent?.components?.some((c: any) =>
+              ['selection', 'form', 'confirmation', 'action_buttons'].includes(c.type)
+            );
 
             return (
               <div key={i} className={`mb-4 flex ${msg.role === "user" || msg.role === "human" ? "justify-end" : "justify-start"}`}>
@@ -304,23 +321,25 @@ export default function ChatPage() {
                       </Card>
                     ) : aiContent?.components ? (
                       isLastAIMessage ? (
-                        // 最后一条消息：显示完整交互组件 + 取消按钮
+                        // 最后一条消息：显示完整交互组件，只有交互式组件才显示取消按钮
                         <>
                           {aiContent.components.map((component: any, j: number) => (
                             <div key={j}>
                               <ComponentRenderer component={component} onAction={handleUIAction} />
                             </div>
                           ))}
-                          <div className="mt-3">
-                            <Button
-                              variant="outline"
-                              size="sm"
-                              onClick={handleCancelFlow}
-                              className="text-gray-600"
-                            >
-                              取消
-                            </Button>
-                          </div>
+                          {hasInteractiveComponent && (
+                            <div className="mt-3">
+                              <Button
+                                variant="outline"
+                                size="sm"
+                                onClick={handleCancelFlow}
+                                className="text-gray-600"
+                              >
+                                取消
+                              </Button>
+                            </div>
+                          )}
                         </>
                       ) : (
                         // 历史消息：显示摘要（只读）

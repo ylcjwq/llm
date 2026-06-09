@@ -110,7 +110,7 @@ export interface AIUIResponse {
 }
 
 export type UIAction =
-  | { componentType: 'selection'; payload: { selectedId: string } }
-  | { componentType: 'form'; payload: { formData: Record<string, any> } }
-  | { componentType: 'confirmation'; payload: { confirmed: boolean } }
-  | { componentType: 'button'; payload: { buttonId: string } };
+  | { type: 'selection'; selectedIds: string[] }
+  | { type: 'form'; formData: Record<string, any> }
+  | { type: 'confirmation'; confirmed: boolean }
+  | { type: 'button'; buttonId: string };

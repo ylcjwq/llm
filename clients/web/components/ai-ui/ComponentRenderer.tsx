@@ -50,6 +50,11 @@ export function ComponentRenderer({ component, onAction }: Props) {
       return <ActionButtons component={component} onAction={onAction} />;
 
     default:
-      return null;
+      console.warn('不支持的组件类型:', (component as any).type);
+      return (
+        <div className="border border-yellow-400 bg-yellow-50 rounded-lg p-3 text-sm text-yellow-800">
+          [不支持的组件类型: {(component as any).type}]
+        </div>
+      );
   }
 }

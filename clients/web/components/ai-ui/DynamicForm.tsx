@@ -21,8 +21,8 @@ export function DynamicForm({ component, onAction }: Props) {
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     onAction({
-      componentType: 'form',
-      payload: { formData },
+      type: 'form',
+      formData,
     });
   };
 

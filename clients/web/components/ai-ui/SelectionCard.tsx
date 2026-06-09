@@ -11,8 +11,8 @@ interface Props {
 export function SelectionCard({ component, onAction }: Props) {
   const handleSelect = (id: string) => {
     onAction({
-      componentType: 'selection',
-      payload: { selectedId: id },
+      type: 'selection',
+      selectedIds: [id],
     });
   };
 

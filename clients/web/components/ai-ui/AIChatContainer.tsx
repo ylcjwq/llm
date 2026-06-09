@@ -18,7 +18,19 @@ interface Props {
 }
 
 export function AIChatContainer({ sessionId }: Props) {
-  const [messages, setMessages] = useState<Message[]>([]);
+  const [messages, setMessages] = useState<Message[]>([
+    {
+      role: 'ai',
+      content: {
+        components: [
+          {
+            type: 'text',
+            content: '欢迎使用 Autix AI 需求分析助理，请描述你的需求，或点击下方常用功能。',
+          },
+        ],
+      },
+    },
+  ]);
   const [input, setInput] = useState('');
   const [loading, setLoading] = useState(false);
 

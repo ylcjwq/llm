@@ -11,8 +11,8 @@ interface Props {
 export function ActionButtons({ component, onAction }: Props) {
   const handleClick = (buttonId: string) => {
     onAction({
-      componentType: 'button',
-      payload: { buttonId },
+      type: 'button',
+      buttonId,
     });
   };
 

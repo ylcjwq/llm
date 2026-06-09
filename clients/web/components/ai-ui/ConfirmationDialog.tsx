@@ -11,8 +11,8 @@ interface Props {
 export function ConfirmationDialog({ component, onAction }: Props) {
   const handleConfirm = (confirmed: boolean) => {
     onAction({
-      componentType: 'confirmation',
-      payload: { confirmed },
+      type: 'confirmation',
+      confirmed,
     });
   };
 
