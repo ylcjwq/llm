@@ -1,5 +1,5 @@
-import * as fs from 'fs/promises';
+import * as fs from 'fs';
 
 export async function parseText(filePath: string): Promise<string> {
-  return await fs.readFile(filePath, 'utf-8');
+  return fs.readFileSync(filePath, 'utf-8');
 }

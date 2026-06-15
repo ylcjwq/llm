@@ -1,96 +1,97 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, NotFoundException } from '@nestjs/common';
+import { v4 as uuid } from 'uuid';
 import { RecursiveCharacterTextSplitter } from '@langchain/textsplitters';
 import { PrismaService } from '../prisma/prisma.service';
-import { parseFile } from './parsers/parser.factory';
-import { EmbeddingService } from '../embedding/embedding.service';
+import { EmbeddingService } from './embedding.service';
 import { SseService } from '../sse/sse.service';
+import { extractText } from './parsers/parser.factory';
 
 @Injectable()
 export class ChunkService {
-  private splitter = new RecursiveCharacterTextSplitter({
+  private readonly splitter = new RecursiveCharacterTextSplitter({
     chunkSize: 500,
     chunkOverlap: 50,
   });
 
   constructor(
-    private prisma: PrismaService,
-    private embeddingService: EmbeddingService,
-    private sseService: SseService,
+    private readonly prisma: PrismaService,
+    private readonly embedding: EmbeddingService,
+    private readonly sseService: SseService,
   ) {}
 
-  async chunkDocument(documentId: string) {
-    const doc = await this.prisma.document.findUniqueOrThrow({
+  async processDocument(documentId: string, userId: string): Promise<void> {
+    const doc = await this.prisma.documents.findUnique({
       where: { id: documentId },
     });
+    if (!doc) throw new NotFoundException('文档不存在');
+    if (!doc.filePath) throw new NotFoundException('文档文件路径不存在');
 
-    // 更新状态
-    await this.prisma.document.update({
+    // 发送"开始"事件
+    await this.sseService.emit(userId, {
+      id: uuid(),
+      taskType: 'document_vectorize',
+      taskId: documentId,
+      status: 'processing',
+      message: '开始向量化',
+      createdAt: new Date().toISOString(),
+    });
+
+    await this.prisma.documents.update({
       where: { id: documentId },
       data: { status: 'processing' },
     });
 
-    // 推送开始处理事件
-    this.sseService.emit(doc.userId, {
-      taskType: 'document_vectorize',
-      taskId: documentId,
-      status: 'processing',
-      message: '开始处理文档',
-    });
-
     try {
-      // 1. 解析文件
-      const text = await parseFile(doc.filename, doc.mimeType);
+      const text = await extractText(doc.filePath, doc.mimeType);
+      const chunks = await this.splitter.splitText(text);
 
-      // 2. 分块
-      const chunks = await this.splitter.createDocuments([text]);
+      await this.prisma.document_chunks.deleteMany({ where: { documentId } });
 
-      // 3. 写入数据库
-      await this.prisma.documentChunk.createMany({
-        data: chunks.map((chunk, index) => ({
-          documentId,
-          content: chunk.pageContent,
-          chunkIndex: index,
-          metadata: chunk.metadata,
-        })),
-      });
+      const vectors = await this.embedding.embedTexts(chunks);
 
-      // 4. 向量化
-      await this.embeddingService.embedChunks(documentId);
+      for (let i = 0; i < chunks.length; i++) {
+        const created = await this.prisma.document_chunks.create({
+          data: { documentId, content: chunks[i], chunkIndex: i },
+        });
 
-      // 5. 更新文档状态
-      await this.prisma.document.update({
-        where: { id: documentId },
-        data: {
-          status: 'completed',
-          chunkCount: chunks.length,
-        },
-      });
+        const vector = `[${vectors[i].join(',')}]`;
+        await this.prisma.$executeRaw`
+          UPDATE document_chunks
+          SET embedding = ${vector}::vector
+          WHERE id = ${created.id}
+        `;
+      }
 
-      // 推送完成事件
-      this.sseService.emit(doc.userId, {
+      // 发送"完成"事件
+      await this.sseService.emit(userId, {
+        id: uuid(),
         taskType: 'document_vectorize',
         taskId: documentId,
         status: 'done',
-        message: '文档处理完成',
+        message: `向量化完成，共 ${chunks.length} 个 chunk`,
         metadata: { chunkCount: chunks.length },
+        createdAt: new Date().toISOString(),
       });
 
-      return { chunkCount: chunks.length };
-    } catch (error) {
-      await this.prisma.document.update({
+      await this.prisma.documents.update({
         where: { id: documentId },
-        data: { status: 'failed' },
+        data: { status: 'done', chunkCount: chunks.length },
       });
-
-      // 推送失败事件
-      this.sseService.emit(doc.userId, {
+    } catch (err) {
+      // 发送"错误"事件
+      await this.sseService.emit(userId, {
+        id: uuid(),
         taskType: 'document_vectorize',
         taskId: documentId,
         status: 'error',
-        message: error instanceof Error ? error.message : '文档处理失败',
+        message: err instanceof Error ? err.message : '向量化失败',
+        createdAt: new Date().toISOString(),
       });
-
-      throw error;
+      await this.prisma.documents.update({
+        where: { id: documentId },
+        data: { status: 'error' },
+      });
+      throw err;
     }
   }
 }

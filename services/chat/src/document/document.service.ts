@@ -1,77 +1,78 @@
 import {
   Injectable,
+  BadRequestException,
   NotFoundException,
   ForbiddenException,
-  BadRequestException,
 } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
-import * as fs from 'fs/promises';
+import * as fs from 'fs';
 import * as path from 'path';
-
-const ALLOWED_MIME_TYPES = ['text/plain', 'text/markdown', 'application/pdf'];
-const MAX_FILE_SIZE = 10 * 1024 * 1024; // 10MB
+import { ALLOWED_MIME_TYPES } from './document.constants';
 
 @Injectable()
 export class DocumentService {
-  constructor(private prisma: PrismaService) {}
+  constructor(private readonly prisma: PrismaService) { }
 
-  async upload(userId: string, file: Express.Multer.File) {
+  async upload(userId: string, file: Express.Multer.File, filename: string) {
+    if (!file) {
+      throw new BadRequestException('未上传文件');
+    }
     if (!ALLOWED_MIME_TYPES.includes(file.mimetype)) {
-      throw new BadRequestException('不支持的文件类型');
+      throw new BadRequestException(`不支持的文件类型：${file.mimetype}`);
     }
 
-    if (file.size > MAX_FILE_SIZE) {
-      throw new BadRequestException('文件大小超过限制（10MB）');
-    }
+    const dir = path.join('uploads', userId);
+    fs.mkdirSync(dir, { recursive: true });
 
-    const timestamp = Date.now();
-    const filename = `${timestamp}-${file.originalname}`;
-    const userDir = path.join('uploads', userId);
-    const filePath = path.join(userDir, filename);
+    const originalName = filename;
+    const savedName = `${Date.now()}-${originalName}`;
+    const filePath = path.join(dir, savedName);
+    fs.writeFileSync(filePath, file.buffer);
 
-    await fs.mkdir(userDir, { recursive: true });
-    await fs.writeFile(filePath, file.buffer);
-
-    return this.prisma.document.create({
+    return this.prisma.documents.create({
       data: {
         userId,
-        filename: filePath,
-        originalName: file.originalname,
+        filename: originalName,
         mimeType: file.mimetype,
         size: file.size,
+        storageType: 'local',
+        filePath,
       },
     });
   }
 
   async findByUser(userId: string) {
-    return this.prisma.document.findMany({
+    return this.prisma.documents.findMany({
       where: { userId },
       orderBy: { createdAt: 'desc' },
+      include: { _count: { select: { document_chunks: true } } },
     });
   }
 
   async findById(documentId: string, userId: string) {
-    const document = await this.prisma.document.findUnique({
+    const doc = await this.prisma.documents.findUnique({
       where: { id: documentId },
+      include: { document_chunks: { orderBy: { chunkIndex: 'asc' } } },
     });
-
-    if (!document) {
-      throw new NotFoundException('文档不存在');
-    }
-
-    if (document.userId !== userId) {
-      throw new ForbiddenException('无权访问此文档');
-    }
-
-    return document;
+    if (!doc) throw new NotFoundException('文档不存在');
+    if (doc.userId !== userId) throw new ForbiddenException('无权访问该文档');
+    return doc;
   }
 
   async delete(documentId: string, userId: string) {
-    const document = await this.findById(documentId, userId);
+    const doc = await this.prisma.documents.findUnique({
+      where: { id: documentId },
+    });
+    if (!doc) throw new NotFoundException('文档不存在');
+    if (doc.userId !== userId) throw new ForbiddenException('无权访问该文档');
 
-    await fs.unlink(document.filename).catch(() => {});
-    await this.prisma.document.delete({ where: { id: documentId } });
-
-    return { message: '删除成功' };
+    if (doc.filePath) {
+      try {
+        fs.unlinkSync(doc.filePath);
+      } catch {
+        // file already gone — ignore
+      }
+    }
+    await this.prisma.documents.delete({ where: { id: documentId } });
   }
 }

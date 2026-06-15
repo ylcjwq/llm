@@ -1,27 +1,29 @@
 import { Module } from '@nestjs/common';
 import { AppController } from './app.controller';
 import { AppService } from './app.service';
-import { LlmModule } from './llm/llm.module';
-import { AdvancedModule } from './llm/advanced.module';
-import { PrismaModule } from './prisma/prisma.module';
-import { ConversationModule } from './conversation/conversation.module';
 import { AuthModule } from './auth/auth.module';
+import { PrismaModule } from './prisma/prisma.module';
+import { LlmModule } from './llm/llm.module';
+import { MessageModule } from './message/message.module';
+import { ConversationModule } from './conversation/conversation.module';
 import { DocumentModule } from './document/document.module';
-import { EmbeddingModule } from './embedding/embedding.module';
 import { SseModule } from './sse/sse.module';
-import { UIProtocolModule } from './llm/ui-protocol/ui-protocol.module';
+import { ModelConfigModule } from './model-config/model-config.module';
+import { ArtifactModule } from './artifact/artifact.module';
+import { ScheduleModule } from '@nestjs/schedule';
 
 @Module({
   imports: [
-    SseModule,
+    ScheduleModule.forRoot(),
     PrismaModule,
     AuthModule,
     LlmModule,
-    AdvancedModule,
+    MessageModule,
     ConversationModule,
     DocumentModule,
-    EmbeddingModule,
-    UIProtocolModule,
+    SseModule,
+    ModelConfigModule,
+    ArtifactModule,
   ],
   controllers: [AppController],
   providers: [AppService],

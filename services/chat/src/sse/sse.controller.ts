@@ -1,31 +1,42 @@
-import { Controller, Sse, UseGuards, Request } from '@nestjs/common';
-import { Observable } from 'rxjs';
+import {
+  Controller,
+  Get,
+  Req,
+  Res,
+  UseGuards,
+  HttpCode,
+  HttpStatus,
+} from '@nestjs/common';
+import { Response, Request } from 'express';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
 import { SseService } from './sse.service';
-import { TaskEvent } from './types';
 
 @Controller('api/sse')
 @UseGuards(JwtAuthGuard)
 export class SseController {
-  constructor(private sseService: SseService) {}
+  constructor(private readonly sseService: SseService) {}
 
-  @Sse()
-  stream(@Request() req): Observable<MessageEvent> {
-    const userId = req.user.userId;
+  @Get('tasks')
+  @HttpCode(HttpStatus.OK)
+  streamTasks(@Req() req: Request, @Res() res: Response) {
+    const userId = (req.user as any).userId;
 
-    return new Observable((observer) => {
-      const subscription = this.sseService.subscribe(userId).subscribe({
-        next: (event: TaskEvent) => {
-          observer.next({ data: event } as MessageEvent);
-        },
-        error: (err) => observer.error(err),
-        complete: () => observer.complete(),
-      });
+    res.setHeader('Content-Type', 'text/event-stream');
+    res.setHeader('Cache-Control', 'no-cache');
+    res.setHeader('Connection', 'keep-alive');
+    res.setHeader('X-Accel-Buffering', 'no');
 
-      return () => {
-        subscription.unsubscribe();
-        this.sseService.remove(userId);
-      };
+    res.write(`event: connected\ndata: ${JSON.stringify({ userId })}\n\n`);
+
+    this.sseService.addConnection(userId, res);
+
+    const heartbeat = setInterval(() => {
+      res.write(': heartbeat\n\n');
+    }, 30000);
+
+    req.on('close', () => {
+      clearInterval(heartbeat);
+      this.sseService.removeConnection(userId, res);
     });
   }
 }

@@ -1,14 +1,12 @@
 services:
-  api:
-    environment:
-      NODE_ENV: development
+  chat:
+    command: bun run dev
     volumes:
-      - ../../services/api:/app/services/api
-      - ../../packages/contracts:/app/packages/contracts
+      - ../../services/chat/src:/app/src
+
   web:
-    environment:
-      NODE_ENV: development
+    command: bun run dev
     volumes:
-      - ../../clients/web:/app/clients/web
-      - ../../packages/contracts:/app/packages/contracts
-                    
+      - ../../clients/web:/app
+      - /app/node_modules
+      - /app/.next

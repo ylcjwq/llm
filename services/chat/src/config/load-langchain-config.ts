@@ -1,41 +1,67 @@
-import fs from 'node:fs';
-import path from 'node:path';
-import yaml from 'js-yaml';
+import * as fs from "fs";
+import * as path from "path";
+import * as yaml from "js-yaml";
 
-export type LangChainAppConfig = {
-  llm: {
-    provider: string;
-    model: string;
-    temperature: number;
-    maxTokens: number;
-  };
-  retrieval: {
-    enabled: boolean;
-    topK: number;
-  };
-  tools: {
-    enableConstraintCheck: boolean;
-    enableEntityLookup: boolean;
-  };
-  features: {
-    enableStructuredOutput: boolean;
-    enableStreaming: boolean;
-  };
-};
-
-export function loadLangChainConfig(): LangChainAppConfig {
-  const filePath = path.join(process.cwd(), 'config', 'langchain.yaml');
-  const raw = fs.readFileSync(filePath, 'utf8');
-  return yaml.load(raw) as LangChainAppConfig;
+export interface LlmConfig {
+  provider: string;
+  model: string;
+  temperature: number;
+  maxTokens: number;
 }
 
-export function getApiKeys() {
+export interface RetrievalConfig {
+  enabled: boolean;
+  topK: number;
+}
+
+export interface ToolsConfig {
+  enableWordCount: boolean;
+  enableKeywordExtract: boolean;
+}
+
+export interface FeaturesConfig {
+  enableStructuredOutput: boolean;
+  enableStreaming: boolean;
+}
+
+export interface LangChainConfig {
+  llm: LlmConfig;
+  retrieval: RetrievalConfig;
+  tools: ToolsConfig;
+  features: FeaturesConfig;
+}
+
+export interface ApiKeys {
+  openaiApiKey: string;
+  openaiBaseUrl: string;
+  embeddingApiKey: string;
+  vectorDbUrl: string;
+  vectorDbApiKey: string;
+}
+
+let cachedConfig: LangChainConfig | null = null;
+
+export function loadLangChainConfig(): LangChainConfig {
+  if (cachedConfig) {
+    return cachedConfig;
+  }
+
+  const configPath = path.resolve(
+    process.cwd(),
+    "config",
+    "langchain.yaml"
+  );
+  const fileContents = fs.readFileSync(configPath, "utf8");
+  cachedConfig = yaml.load(fileContents) as LangChainConfig;
+  return cachedConfig;
+}
+
+export function getApiKeys(): ApiKeys {
   return {
-    openaiApiKey: process.env.OPENAI_API_KEY ?? '',
-    openaiBaseUrl: process.env.OPENAI_BASE_URL,
-    embeddingApiKey:
-      process.env.EMBEDDING_API_KEY ?? process.env.OPENAI_API_KEY ?? '',
-    vectorDbUrl: process.env.VECTOR_DB_URL,
-    vectorDbApiKey: process.env.VECTOR_DB_API_KEY,
+    openaiApiKey: process.env.OPENAI_API_KEY ?? "",
+    openaiBaseUrl: process.env.OPENAI_BASE_URL ?? "https://api.openai.com/v1",
+    embeddingApiKey: process.env.EMBEDDING_API_KEY ?? "",
+    vectorDbUrl: process.env.VECTOR_DB_URL ?? "http://localhost:6333",
+    vectorDbApiKey: process.env.VECTOR_DB_API_KEY ?? "",
   };
 }
