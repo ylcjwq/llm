@@ -77,14 +77,14 @@ export default function RegisterPage() {
           <div className="flex items-center gap-3">
             <Image
               src="/logo.png"
-              alt="Amux Design"
+              alt="需求分析助手"
               width={40}
               height={40}
               className="rounded-md"
               priority
             />
             <div>
-              <div className="text-foreground font-bold text-xl">Amux Design</div>
+              <div className="text-foreground font-bold text-xl">需求分析助手</div>
               <div className="text-foreground/60 text-xs">智能需求分析助理</div>
             </div>
           </div>
@@ -92,7 +92,7 @@ export default function RegisterPage() {
 
         <div className="relative z-10 space-y-4">
           <h2 className="text-3xl font-bold text-foreground leading-tight">
-            加入 Amux Design<br />
+            加入 需求分析助手<br />
             <span className="text-success">开启智能分析</span>
           </h2>
           <p className="text-foreground/60 text-sm leading-relaxed">
@@ -114,12 +114,12 @@ export default function RegisterPage() {
             <div className="flex items-center justify-center gap-2">
               <Image
                 src="/logo.png"
-                alt="Amux Design"
+                alt="需求分析助手"
                 width={28}
                 height={28}
                 className="rounded-md"
               />
-              <span className="text-xl font-bold text-foreground">Amux Design</span>
+              <span className="text-xl font-bold text-foreground">需求分析助手</span>
             </div>
           </div>
 

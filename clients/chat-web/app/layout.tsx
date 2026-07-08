@@ -3,8 +3,8 @@ import { Providers } from '@/components/providers';
 import './globals.css';
 
 export const metadata: Metadata = {
-  title: 'Amux Design - 智能需求分析助理',
-  description: 'Amux Design 智能对话系统',
+  title: '智能需求分析助理',
+  description: '需求分析助手 智能对话系统',
   icons: {
     icon: [
       { url: '/favicon-16x16.png', sizes: '16x16', type: 'image/png' },

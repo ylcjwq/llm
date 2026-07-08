@@ -103,14 +103,14 @@ export default function ChatLoginPage() {
           <div className="flex items-center gap-3">
             <Image
               src="/logo.png"
-              alt="Amux Design"
+              alt="需求分析助手"
               width={40}
               height={40}
               className="rounded-md"
               priority
             />
             <div>
-              <div className="text-foreground font-bold text-xl">Amux Design</div>
+              <div className="text-foreground font-bold text-xl">需求分析助手</div>
               <div className="text-foreground/60 text-xs">智能需求分析助理</div>
             </div>
           </div>
@@ -155,12 +155,12 @@ export default function ChatLoginPage() {
             <div className="flex items-center justify-center gap-2">
               <Image
                 src="/logo.png"
-                alt="Amux Design"
+                alt="需求分析助手"
                 width={28}
                 height={28}
                 className="rounded-md"
               />
-              <span className="text-xl font-bold text-foreground">Amux Design</span>
+              <span className="text-xl font-bold text-foreground">需求分析助手</span>
             </div>
           </div>
 
@@ -246,7 +246,7 @@ export default function ChatLoginPage() {
           </p>
 
           <p className="text-center text-xs text-foreground/30">
-            © 2024 Amux Design · 需求分析助理
+            © 2026 需求分析助理
           </p>
         </div>
       </div>

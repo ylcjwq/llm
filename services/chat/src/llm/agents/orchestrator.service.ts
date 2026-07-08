@@ -477,7 +477,6 @@ export class OrchestratorService {
                 type: 'agent_end',
                 agent: expertSubgraphMap[event.node],
                 step: currentStep,
-                totalSteps: agentOrder.length,
                 parallel: true,
               };
             } else {
@@ -488,7 +487,6 @@ export class OrchestratorService {
                 type: 'agent_end',
                 agent: endAgentName,
                 step: endStep,
-                totalSteps: agentOrder.length,
               };
             }
             break;

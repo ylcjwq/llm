@@ -116,7 +116,7 @@ export function ChatSidebar() {
           <div className="flex items-center gap-3">
             <Image
               src="/logo.png"
-              alt="Amux Design"
+              alt="需求分析助手"
               width={30}
               height={30}
               style={{ width: 30, height: 30 }}
@@ -124,7 +124,7 @@ export function ChatSidebar() {
             />
             <div className="min-w-0">
               <p className="text-[15px] font-semibold tracking-tight" style={{ color: 'var(--foreground)' }}>
-                Amux Design
+                需求分析助手
               </p>
             </div>
           </div>

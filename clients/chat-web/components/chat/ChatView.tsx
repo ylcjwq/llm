@@ -776,16 +776,14 @@ export function ChatView({ sessionId }: ChatViewProps) {
           {aiUIMessages.length === 0 && (
             <MessageBubble
               role="assistant"
-              content={`您好！我是 Amux Design 需求分析助理。\n请描述您的需求，我来帮您进行结构化分析与整理。`}
+              content={`您好！我是您的需求分析助理。\n请描述您的需求，我来帮您进行结构化分析与整理。`}
             />
           )}
 
           {aiUIMessages.map((msg, i) => (
             <div key={msg.id} className={`flex ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}>
               {msg.role === 'user' ? (
-                <div className="max-w-[78%]">
-                  <MessageBubble role="user" content={msg.content || ''} />
-                </div>
+                <MessageBubble role="user" content={msg.content || ''} />
               ) : msg.messageType === 'ui' ? (
                 <div className="w-full">
                   <AIUIRenderer

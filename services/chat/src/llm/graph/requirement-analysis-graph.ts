@@ -44,16 +44,10 @@ export const RequirementAnalysisState = Annotation.Root({
   ...MessagesAnnotation.spec,
   
   // 用户原始输入
-  input: Annotation<string>({
-    reducer: (_, newValue) => newValue,
-    default: () => '',
-  }),
+  input: Annotation<string>,
   
   // RAG 检索上下文
-  retrievedContext: Annotation<string>({
-    reducer: (_, newValue) => newValue,
-    default: () => '',
-  }),
+  retrievedContext: Annotation<string>,
   
   // 用户意图（带默认值）
   intent: Annotation<'analyze' | 'query' | 'chat'>({
@@ -62,49 +56,28 @@ export const RequirementAnalysisState = Annotation.Root({
   }),
   
   // extract 节点输出：结构化的需求字段
-  extracted: Annotation<Record<string, unknown>>({
-    reducer: (_, newValue) => newValue,
-    default: () => ({}),
-  }),
+  extracted: Annotation<Record<string, unknown>>,
   
   // clarify 节点输出：澄清判断结果
   clarified: Annotation<{
     needsClarification: boolean;
     questions: string[];
-  }>({
-    reducer: (_, newValue) => newValue,
-    default: () => ({ needsClarification: false, questions: [] }),
-  }),
+  }>,
   
   // analysis 节点输出：多维度分析结果（Markdown）
-  analysisResult: Annotation<string>({
-    reducer: (_, newValue) => newValue,
-    default: () => '',
-  }),
+  analysisResult: Annotation<string>,
   
   // risk 节点输出：风险评估结果（Markdown）
-  riskResult: Annotation<string>({
-    reducer: (_, newValue) => newValue,
-    default: () => '',
-  }),
+  riskResult: Annotation<string>,
   
   // summary 节点输出：最终综合报告（Markdown）
-  summary: Annotation<string>({
-    reducer: (_, newValue) => newValue,
-    default: () => '',
-  }),
+  summary: Annotation<string>,
   
   // 查询响应
-  queryResponse: Annotation<string>({
-    reducer: (_, newValue) => newValue,
-    default: () => '',
-  }),
+  queryResponse: Annotation<string>,
   
   // 聊天响应
-  chatResponse: Annotation<string>({
-    reducer: (_, newValue) => newValue,
-    default: () => '',
-  }),
+  chatResponse: Annotation<string>,
   
   // 工具循环计数（用于 ReAct 子图的硬上限控制）
   toolLoopCount: Annotation<number>({
@@ -170,7 +143,7 @@ async function extractNode(
   // #region agent log
   fetch('http://127.0.0.1:7439/ingest/d2836ca5-d253-4abc-ae4c-b65a3a5711c8',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'28b230'},body:JSON.stringify({sessionId:'28b230',location:'requirement-analysis-graph.ts:133',message:'extractNode 开始',data:{input:state.input.substring(0,50)},timestamp:Date.now(),hypothesisId:'F'})}).catch(()=>{});
   // #endregion
-
+  
   const extractAgent = createExtractAgent(model);
   
   const extractRaw = await extractAgent.invoke({ input: state.input });
@@ -227,7 +200,6 @@ async function clarifyNode(
   config: { model: BaseChatModel },
 ): Promise<Partial<typeof RequirementAnalysisState.State>> {
   const { model } = config;
-
   const clarifyAgent = createClarifyAgent(model);
   
   const extractResultStr = JSON.stringify(state.extracted);
@@ -486,7 +458,7 @@ ${state.critique}
  */
 export const triageSchema = z.object({
   action: z.enum(['answer', 'handoff_to_query', 'handoff_to_analysis']),
-  response: z.string().nullable().describe('当 action=answer 时直接回复用户的内容，非 answer 时为 null'),
+  response: z.string().describe('当 action=answer 时直接回复用户的内容'),
   reason: z.string().nullable().describe('交接理由，无理由时为 null'),
 });
 
@@ -499,7 +471,7 @@ export async function triageNode(
   config: { model: BaseChatModel },
 ): Promise<Partial<typeof RequirementAnalysisState.State>> {
   const { model } = config;
-  const structured = model.withStructuredOutput(triageSchema, { method: 'functionCalling' });
+  const structured = model.withStructuredOutput(triageSchema);
   const result = await structured.invoke([
     {
       role: 'system',
@@ -514,12 +486,11 @@ export async function triageNode(
   ]);
 
   if (result.action === 'answer') {
-    const response = result.response ?? '';
     return {
-      messages: [new AIMessage(response)],
+      messages: [new AIMessage(result.response)],
       intent: 'chat',
-      chatResponse: response,
-      summary: response,
+      chatResponse: result.response,
+      summary: result.response,
       handoffReason: '',
     };
   }
@@ -546,7 +517,6 @@ async function riskNode(
   config: { model: BaseChatModel },
 ): Promise<Partial<typeof RequirementAnalysisState.State>> {
   const { model } = config;
-
   const riskAgent = createRiskAgent(model);
   
   const extractResultStr = JSON.stringify(state.extracted);

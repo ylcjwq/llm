@@ -98,7 +98,7 @@ export function MessageBubble({ role, content, thinking, isStreaming }: MessageB
       )}
 
       <div
-        className={isUser ? 'max-w-[78%]' : 'w-full max-w-[720px]'}
+        className={isUser ? 'max-w-[600px]' : 'w-full max-w-[720px]'}
         style={
           isUser
             ? {
@@ -107,8 +107,6 @@ export function MessageBubble({ role, content, thinking, isStreaming }: MessageB
                 border: '1px solid var(--border)',
                 borderRadius: '8px',
                 padding: '12px 14px',
-                wordBreak: 'break-word',
-                overflowWrap: 'break-word',
               }
             : {
                 color: 'var(--foreground)',
@@ -131,7 +129,9 @@ export function MessageBubble({ role, content, thinking, isStreaming }: MessageB
             />
           </span>
         ) : isUser ? (
-          <p className="whitespace-pre-wrap text-[15px] leading-7">{content}</p>
+          <p className="text-[15px] leading-7" style={{ whiteSpace: 'normal' }}>
+            {content.replace(/\n/g, ' ')}
+          </p>
         ) : (
           <div className="max-w-none text-[15px] leading-7 prose-assistant">
             <ReactMarkdown
