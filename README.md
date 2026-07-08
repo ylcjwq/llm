@@ -180,5 +180,4 @@ SSE 推送（逐行 Markdown + 结构化 summary 事件 + [DONE]）
 ## 项目截图
 <img width="2539" height="1354" alt="image1" src="https://github.com/user-attachments/assets/b5692b21-c3a4-4a77-b16f-cfc73987d505" />
 <img width="2550" height="1353" alt="image2" src="https://github.com/user-attachments/assets/99f0de10-3e8c-4f87-bb35-22dacdc6994f" />
-<img width="2560" height="1340" alt="image3" src="https://github.com/user-attachments/assets/20c23888-359c-4d7b-8252-4e73e860983b" />
 
